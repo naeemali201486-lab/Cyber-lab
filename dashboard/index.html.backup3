@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyber Lab Dashboard</title>
+</head>
+<body>
+  <h1>Cyber Lab Dashboard</h1>
+
+  <h2>Projects</h2>
+  <ul>
+    <li>HTTP Lab — Complete</li>
+    <li>Web Lab — Running</li>
+    <li>Service Test — Monitoring</li>
+  </ul>
+
+  <h2>Service Test</h2>
+  <p>Status: <strong id="status">Checking...</strong></p>
+  <p>Response time: <strong id="response">—</strong></p>
+
+  <script>
+    async function checkService() {
+      const status = document.getElementById("status");
+      const response = document.getElementById("response");
+
+      try {
+        const result = await fetch("/api/status");
+        const data = await result.json();
+
+        status.textContent = data.status.toUpperCase();
+        response.textContent =
+          data.response_ms !== undefined
+            ? data.response_ms + " ms"
+            : "—";
+      } catch (error) {
+        status.textContent = "OFFLINE";
+        response.textContent = "—";
+      }
+    }
+
+    checkService();
+    setInterval(checkService, 5000);
+  </script>
+</body>
+</html>

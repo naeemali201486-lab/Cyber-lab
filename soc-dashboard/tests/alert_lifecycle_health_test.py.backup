@@ -1,0 +1,174 @@
+import json
+from pathlib import Path
+from urllib.request import Request, urlopen
+
+BASE = "http://127.0.0.1:9099"
+ROOT = Path(__file__).resolve().parent.parent
+
+INCIDENTS = ROOT / "events" / "incidents.json"
+AUDIT = ROOT / "events" / "audit.json"
+
+
+def get(path):
+    with urlopen(BASE + path, timeout=5) as response:
+        return response.status, json.loads(
+            response.read().decode()
+        )
+
+
+def post_status(incident_id, status):
+    data = json.dumps({
+        "status": status
+    }).encode()
+
+    request = Request(
+        f"{BASE}/api/incidents/{incident_id}/status",
+        data=data,
+        headers={
+            "Content-Type": "application/json"
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request, timeout=5) as response:
+            return response.status, json.loads(
+                response.read().decode()
+            )
+    except Exception as exc:
+        if hasattr(exc, "code"):
+            body = exc.read().decode()
+            return exc.code, json.loads(body)
+        raise
+
+
+print("=== ALERT LIFECYCLE HEALTH TEST ===")
+
+with open(INCIDENTS, encoding="utf-8") as f:
+    incident_baseline = json.load(f)
+
+with open(AUDIT, encoding="utf-8") as f:
+    audit_baseline = json.load(f)
+
+try:
+    # Find a temporary test incident created by the test itself.
+    # We use the existing API and then identify it from the baseline difference.
+    before_ids = {
+        x.get("id")
+        for x in incident_baseline
+    }
+
+    from incident_manager import create_incident
+
+    incident = create_incident(
+        "ALERT_LIFECYCLE_TEST",
+        "web-security-lab",
+        "Temporary lifecycle health test"
+    )
+
+    incident_id = incident["id"]
+
+    assert incident_id not in before_ids
+    assert incident["status"] == "OPEN"
+
+    print(f"[PASS] Created temporary incident #{incident_id}")
+    print("[PASS] Initial status: OPEN")
+
+    # Verify through API.
+    status, data = get("/api/incidents")
+
+    assert status == 200
+
+    api_incident = next(
+        x for x in data["incidents"]
+        if x["id"] == incident_id
+    )
+
+    assert api_incident["status"] == "OPEN"
+    print("[PASS] API reports OPEN")
+
+    # OPEN -> ACKNOWLEDGED
+    status, data = post_status(
+        incident_id,
+        "ACKNOWLEDGED"
+    )
+
+    assert status == 200
+    assert data["incident"]["status"] == "ACKNOWLEDGED"
+
+    print("[PASS] OPEN -> ACKNOWLEDGED")
+
+    # ACKNOWLEDGED -> RESOLVED
+    status, data = post_status(
+        incident_id,
+        "RESOLVED"
+    )
+
+    assert status == 200
+    assert data["incident"]["status"] == "RESOLVED"
+    assert data["incident"].get("resolved")
+
+    print("[PASS] ACKNOWLEDGED -> RESOLVED")
+    print("[PASS] Resolved timestamp present")
+
+    # Invalid status must be rejected.
+    status, data = post_status(
+        incident_id,
+        "INVALID_STATUS"
+    )
+
+    assert status == 400
+    assert "error" in data
+
+    print("[PASS] Invalid status rejected")
+
+    # Verify audit trail.
+    with open(AUDIT, encoding="utf-8") as f:
+        audit = json.load(f)
+
+    records = [
+        x for x in audit
+        if x.get("incident_id") == incident_id
+    ]
+
+    assert len(records) >= 3
+
+    records = records[-3:]
+
+    assert records[0]["action"] == "CREATED"
+    assert records[0]["new_status"] == "OPEN"
+
+    assert records[1]["action"] == "STATUS_CHANGED"
+    assert records[1]["old_status"] == "OPEN"
+    assert records[1]["new_status"] == "ACKNOWLEDGED"
+
+    assert records[2]["action"] == "STATUS_CHANGED"
+    assert records[2]["old_status"] == "ACKNOWLEDGED"
+    assert records[2]["new_status"] == "RESOLVED"
+
+    print("[PASS] Audit CREATED")
+    print("[PASS] Audit OPEN -> ACKNOWLEDGED")
+    print("[PASS] Audit ACKNOWLEDGED -> RESOLVED")
+
+finally:
+    # Restore both files exactly to their original state.
+    with open(INCIDENTS, "w", encoding="utf-8") as f:
+        json.dump(
+            incident_baseline,
+            f,
+            indent=2
+        )
+
+    with open(AUDIT, "w", encoding="utf-8") as f:
+        json.dump(
+            audit_baseline,
+            f,
+            indent=2
+        )
+
+    print("[CLEANUP] Incident + audit baselines restored")
+
+
+print()
+print("=== RESULT ===")
+print("ALERT LIFECYCLE TEST: PASS")

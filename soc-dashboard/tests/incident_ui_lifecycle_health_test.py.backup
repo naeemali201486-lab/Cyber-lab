@@ -1,0 +1,26 @@
+from pathlib import Path
+
+HTML = Path("soc-dashboard/index.html").read_text()
+
+EXPECTED = [
+    'function renderIncidents()',
+    'changeIncident(${incident.id}, \'ACKNOWLEDGED\')',
+    'changeIncident(${incident.id}, \'RESOLVED\')',
+    'async function changeIncident(id, status)',
+    'fetch(',
+    '/api/incidents/${id}/status',
+    'method: "POST"',
+    'JSON.stringify({status})',
+    'loadIncidents()',
+    'loadAudit()',
+]
+
+print("=== INCIDENT UI LIFECYCLE HEALTH TEST ===")
+
+for item in EXPECTED:
+    assert item in HTML, f"Missing: {item}"
+    print(f"[PASS] {item}")
+
+print()
+print("=== RESULT ===")
+print("INCIDENT UI LIFECYCLE TEST: PASS")

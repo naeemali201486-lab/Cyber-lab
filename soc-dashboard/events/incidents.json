@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "created": "2026-08-18T12:57:13+05:00",
+    "event": "RATE_LIMIT",
+    "service": "web-security-lab",
+    "detail": "HTTP 429 observed during local SOC test",
+    "severity": "MEDIUM",
+    "status": "ACKNOWLEDGED"
+  },
+  {
+    "id": 2,
+    "created": "2026-08-18T12:57:36+05:00",
+    "event": "RATE_LIMIT",
+    "service": "web-security-lab",
+    "detail": "HTTP 429 observed during local SOC test",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-18T13:04:30+05:00"
+  },
+  {
+    "id": 3,
+    "created": "2026-08-18T13:32:03+05:00",
+    "event": "RATE_LIMIT",
+    "service": "web-security-lab",
+    "detail": "HTTP 429 observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-18T13:41:00+05:00"
+  },
+  {
+    "id": 4,
+    "created": "2026-08-18T13:52:53+05:00",
+    "event": "AUTH_FAILURE",
+    "service": "web-security-lab",
+    "detail": "Failed authentication attempt observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-18T13:55:10+05:00"
+  },
+  {
+    "id": 5,
+    "created": "2026-08-18T14:16:43+05:00",
+    "event": "AUTH_FAILURE",
+    "service": "web-security-lab",
+    "detail": "Failed authentication attempt observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-18T16:01:49+05:00",
+    "correlated_to": "BRUTE_FORCE"
+  },
+  {
+    "id": 6,
+    "created": "2026-08-18T14:18:50+05:00",
+    "event": "BRUTE_FORCE",
+    "service": "web-security-lab",
+    "detail": "5 failed authentication attempts within 60 seconds",
+    "severity": "HIGH",
+    "status": "RESOLVED",
+    "resolved": "2026-08-18T16:07:25+05:00"
+  },
+  {
+    "id": 7,
+    "created": "2026-08-20T17:26:08+05:00",
+    "event": "SUSPICIOUS_REQUEST",
+    "service": "web-security-lab",
+    "detail": "Suspicious request observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-20T17:27:01+05:00"
+  },
+  {
+    "id": 8,
+    "created": "2026-08-23T17:41:38+05:00",
+    "event": "AUTH_FAILURE",
+    "service": "web-security-lab",
+    "detail": "Failed authentication attempt observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-23T18:01:08+05:00"
+  },
+  {
+    "id": 9,
+    "created": "2026-08-24T21:26:07+05:00",
+    "event": "SUSPICIOUS_REQUEST",
+    "service": "web-security-lab",
+    "detail": "Suspicious request observed automatically",
+    "severity": "MEDIUM",
+    "status": "RESOLVED",
+    "resolved": "2026-08-25T01:26:17+05:00"
+  }
+]

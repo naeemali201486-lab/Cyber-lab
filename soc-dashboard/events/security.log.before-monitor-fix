@@ -1,0 +1,10 @@
+2026-08-17T13:32:37+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed during local test
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically
+2026-08-17T14:22:55+05:00 | RATE_LIMIT | service=web-security-lab | HTTP 429 observed automatically

@@ -1,0 +1,49 @@
+from pathlib import Path
+import time
+import json
+
+LOG = Path.home() / "cyber-lab" / "logs" / "web-security-lab.log"
+EVENTS = Path("soc-dashboard/events/security.log")
+INCIDENTS = Path("soc-dashboard/events/incidents.json")
+
+print("=== SOC MONITOR HEALTH TEST ===")
+
+assert LOG.exists(), "web-security-lab log not found"
+assert EVENTS.exists(), "SOC security log not found"
+assert INCIDENTS.exists(), "Incident database not found"
+
+baseline_events = EVENTS.read_text(
+    encoding="utf-8",
+    errors="replace"
+)
+
+baseline_incidents = json.loads(
+    INCIDENTS.read_text(encoding="utf-8")
+)
+
+print("[PASS] Required files available")
+print(f"[PASS] Existing incidents: {len(baseline_incidents)}")
+
+print()
+print("=== MONITOR PROCESS ===")
+
+import subprocess
+
+result = subprocess.run(
+    ["ps", "-A", "-o", "cmd"],
+    capture_output=True,
+    text=True
+)
+
+assert "soc-dashboard/monitor.py" in result.stdout
+
+print("[PASS] SOC monitor process detected")
+
+print()
+print("=== BASELINE ===")
+print(f"[PASS] Security events: {len(baseline_events.splitlines())}")
+print(f"[PASS] Incidents: {len(baseline_incidents)}")
+
+print()
+print("=== RESULT ===")
+print("SOC MONITOR HEALTH TEST: PASS")

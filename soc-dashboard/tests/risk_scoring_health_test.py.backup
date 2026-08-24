@@ -1,0 +1,31 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from incident_manager import get_severity
+
+
+EXPECTED = {
+    "BRUTE_FORCE": "HIGH",
+    "SUSPICIOUS_REQUEST": "MEDIUM",
+    "AUTH_FAILURE": "MEDIUM",
+    "RATE_LIMIT": "MEDIUM",
+    "UNKNOWN_EVENT": "LOW",
+}
+
+print("=== RISK SCORING HEALTH TEST ===")
+
+for event, expected in EXPECTED.items():
+    actual = get_severity(event)
+
+    assert actual == expected, (
+        f"{event}: expected {expected}, got {actual}"
+    )
+
+    print(f"[PASS] {event}: {actual}")
+
+print()
+print("=== RESULT ===")
+print("RISK SCORING TEST: PASS")

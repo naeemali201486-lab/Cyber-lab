@@ -1,0 +1,86 @@
+from pathlib import Path
+import json
+import time
+
+LOG = Path.home() / "cyber-lab" / "logs" / "web-security-lab.log"
+INCIDENTS = Path("soc-dashboard/events/incidents.json")
+AUDIT = Path("soc-dashboard/events/audit.json")
+
+print("=== SOC AUTOMATIC DETECTION TEST ===")
+
+baseline_incidents = json.loads(
+    INCIDENTS.read_text(encoding="utf-8")
+)
+
+baseline_audit = json.loads(
+    AUDIT.read_text(encoding="utf-8")
+)
+
+baseline_ids = {x.get("id") for x in baseline_incidents}
+
+print(f"[PASS] Baseline incidents: {len(baseline_incidents)}")
+
+try:
+    test_marker = "PHASE8_AUTOMATED_TEST"
+
+    with LOG.open("a", encoding="utf-8") as f:
+        for i in range(5):
+            f.write(
+                f"AUTH_FAILURE {test_marker} attempt={i+1}\n"
+            )
+
+    print("[PASS] Temporary test events written")
+    print("[INFO] Waiting for SOC monitor...")
+
+    detected = None
+
+    for _ in range(10):
+        time.sleep(1)
+
+        current = json.loads(
+            INCIDENTS.read_text(encoding="utf-8")
+        )
+
+        new_incidents = [
+            x for x in current
+            if x.get("id") not in baseline_ids
+        ]
+
+        matches = [
+            x for x in new_incidents
+            if x.get("event") == "BRUTE_FORCE"
+        ]
+
+        if matches:
+            detected = matches[-1]
+            break
+
+    assert detected is not None, \
+        "BRUTE_FORCE incident not detected"
+
+    assert detected.get("severity") == "HIGH"
+    assert detected.get("status") == "OPEN"
+
+    print("[PASS] BRUTE_FORCE incident detected")
+    print(
+        f"[PASS] Incident #{detected['id']} "
+        f"severity={detected['severity']} "
+        f"status={detected['status']}"
+    )
+
+finally:
+    INCIDENTS.write_text(
+        json.dumps(baseline_incidents, indent=2),
+        encoding="utf-8"
+    )
+
+    AUDIT.write_text(
+        json.dumps(baseline_audit, indent=2),
+        encoding="utf-8"
+    )
+
+    print("[CLEANUP] Incident + audit baselines restored")
+
+print()
+print("=== RESULT ===")
+print("SOC AUTOMATIC DETECTION TEST: PASS")

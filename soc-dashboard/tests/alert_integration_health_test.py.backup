@@ -1,0 +1,36 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from alert_rules import evaluate_alert
+from incident_manager import get_severity
+
+
+EVENTS = [
+    "BRUTE_FORCE",
+    "SUSPICIOUS_REQUEST",
+    "AUTH_FAILURE",
+    "RATE_LIMIT",
+]
+
+
+print("=== ALERT + INCIDENT INTEGRATION TEST ===")
+
+for event in EVENTS:
+    severity = get_severity(event)
+    result = evaluate_alert(event, severity)
+
+    assert result["event"] == event
+    assert result["severity"] == severity
+    assert result["score"] > 0
+
+    print(
+        f"[PASS] {event}: "
+        f"{severity} score={result['score']}"
+    )
+
+print()
+print("=== RESULT ===")
+print("ALERT INTEGRATION TEST: PASS")

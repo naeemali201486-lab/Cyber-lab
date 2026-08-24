@@ -1,0 +1,59 @@
+from pathlib import Path
+from urllib.request import urlopen
+
+
+UI = Path("soc-dashboard/index.html").read_text(
+    encoding="utf-8"
+)
+
+print("=== CORRELATION UI HEALTH TEST ===")
+
+# HTML panel
+assert "Event Correlation" in UI
+print("[PASS] Event Correlation section")
+
+assert 'id="correlationGroups"' in UI
+print("[PASS] Correlation container")
+
+assert "CORRELATION GROUPS" in UI
+print("[PASS] Correlation card")
+
+# API integration
+assert '"/api/correlation"' in UI
+print("[PASS] /api/correlation referenced")
+
+# JavaScript loader
+assert "async function loadCorrelation()" in UI
+print("[PASS] loadCorrelation()")
+
+assert "data.groups" in UI
+print("[PASS] Correlation groups rendered")
+
+# Dashboard refresh integration
+assert "loadCorrelation()," in UI
+print("[PASS] Dashboard refresh includes correlation")
+
+# Existing dashboard lifecycle
+for name in [
+    "loadStatus()",
+    "loadSummary()",
+    "loadAlerts()",
+    "loadIncidents()",
+    "loadAudit()",
+    "loadEvents()",
+]:
+    assert name in UI
+    print(f"[PASS] Existing {name}")
+
+# Live endpoint
+with urlopen(
+    "http://127.0.0.1:9099/api/correlation",
+    timeout=5
+) as response:
+    assert response.status == 200
+
+print("[PASS] Live correlation API HTTP 200")
+
+print()
+print("=== RESULT ===")
+print("CORRELATION UI TEST: PASS")

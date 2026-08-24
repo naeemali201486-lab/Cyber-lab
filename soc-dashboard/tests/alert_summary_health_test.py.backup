@@ -1,0 +1,35 @@
+import json
+from urllib.request import urlopen
+
+URL = "http://127.0.0.1:9099/api/alert-summary"
+
+print("=== ALERT SUMMARY HEALTH TEST ===")
+
+with urlopen(URL, timeout=5) as response:
+    assert response.status == 200
+    data = json.loads(response.read().decode())
+
+assert "total" in data
+assert "HIGH" in data
+assert "MEDIUM" in data
+assert "LOW" in data
+
+assert data["total"] == (
+    data["HIGH"] +
+    data["MEDIUM"] +
+    data["LOW"]
+)
+
+assert data["HIGH"] >= 0
+assert data["MEDIUM"] >= 0
+assert data["LOW"] >= 0
+
+print(f"[PASS] HTTP {response.status}")
+print(f"[PASS] Total alerts: {data['total']}")
+print(f"[PASS] HIGH: {data['HIGH']}")
+print(f"[PASS] MEDIUM: {data['MEDIUM']}")
+print(f"[PASS] LOW: {data['LOW']}")
+
+print()
+print("=== RESULT ===")
+print("ALERT SUMMARY TEST: PASS")

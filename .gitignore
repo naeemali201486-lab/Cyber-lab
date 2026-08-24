@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Logs
+*.log
+logs/
+runtime-logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.pid
+
+# Backups
+backups/
+
+# OS files
+.DS_Store
+backup-lab/

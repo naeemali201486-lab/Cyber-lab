@@ -1,0 +1,35 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from alert_rules import evaluate_alert
+
+
+EXPECTED = {
+    ("BRUTE_FORCE", "HIGH"): (90, True),
+    ("SUSPICIOUS_REQUEST", "MEDIUM"): (50, True),
+    ("AUTH_FAILURE", "MEDIUM"): (50, True),
+    ("UNKNOWN_EVENT", "LOW"): (20, False),
+}
+
+
+print("=== ALERT RULES HEALTH TEST ===")
+
+for (event, severity), (score, should_alert) in EXPECTED.items():
+    result = evaluate_alert(event, severity)
+
+    assert result["event"] == event
+    assert result["severity"] == severity
+    assert result["score"] == score
+    assert result["alert"] is should_alert
+
+    print(
+        f"[PASS] {event}: "
+        f"{severity} score={score} alert={should_alert}"
+    )
+
+print()
+print("=== RESULT ===")
+print("ALERT RULES TEST: PASS")

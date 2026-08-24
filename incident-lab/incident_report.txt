@@ -1,0 +1,12 @@
+=== Cyber Lab Incident Report ===
+Generated: 2026-08-13T14:56:59
+
+Total events: 5
+Total alerts: 3
+
+Alerts:
+- Authentication failure | 2026-08-13T14:55:08 | FAILED_LOGIN | user=test
+- Access denied | 2026-08-13T14:55:22 | DENIED | path=/admin
+- Application error | 2026-08-13T14:55:30 | ERROR | service=test
+
+Assessment: ALERTS PRESENT

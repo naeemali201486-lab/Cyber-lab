@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyber Lab Dashboard</title>
+</head>
+<body>
+  <h1>Cyber Lab Dashboard</h1>
+
+  <h2>Projects</h2>
+  <ul>
+    <li>HTTP Lab — Complete</li>
+    <li>Web Lab — Running</li>
+    <li>Service Test — Monitoring</li>
+  </ul>
+
+  <h2>Service Test</h2>
+  <p>Health endpoint: <code>127.0.0.1:9094/health</code></p>
+  <p>Status: <strong id="status">Checking...</strong></p>
+
+  <script>
+    fetch("http://127.0.0.1:9094/health")
+      .then(response => {
+        if (!response.ok) throw new Error("Service unavailable");
+        return response.json();
+      })
+      .then(data => {
+        document.getElementById("status").textContent =
+          data.status + " — " + data.service;
+      })
+      .catch(() => {
+        document.getElementById("status").textContent = "OFFLINE";
+      });
+  </script>
+</body>
+</html>

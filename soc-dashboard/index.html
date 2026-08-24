@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Cyber Lab SOC Dashboard</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      background: #0b0f14;
+      color: #e8edf2;
+    }
+
+    .container {
+      max-width: 1250px;
+      margin: auto;
+    }
+
+    header {
+      border-bottom: 1px solid #26313c;
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+    }
+
+    h2 {
+      margin-top: 28px;
+      border-bottom: 1px solid #26313c;
+      padding-bottom: 8px;
+    }
+
+    .muted {
+      color: #8d9aa8;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .status-banner {
+      padding: 18px;
+      border: 1px solid #26313c;
+      border-radius: 8px;
+      background: #111820;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .healthy {
+      border-left: 5px solid #42d392;
+    }
+
+    .unhealthy {
+      border-left: 5px solid #ef5350;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #111820;
+      border: 1px solid #26313c;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .card-title {
+      color: #8d9aa8;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .number {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .services,
+    .incidents,
+    .events {
+      display: grid;
+      gap: 10px;
+    }
+
+    .services {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .service,
+    .incident,
+    .event {
+      background: #111820;
+      border: 1px solid #26313c;
+      border-radius: 8px;
+    }
+
+    .service {
+      padding: 14px;
+    }
+
+    .service.online {
+      border-left: 5px solid #42d392;
+    }
+
+    .service.offline {
+      border-left: 5px solid #ef5350;
+    }
+
+    .incident {
+      padding: 15px;
+    }
+
+    .incident.open {
+      border-left: 5px solid #ef5350;
+    }
+
+    .incident.acknowledged {
+      border-left: 5px solid #f0b429;
+    }
+
+    .incident.resolved {
+      border-left: 5px solid #42d392;
+    }
+
+    .incident.high {
+      box-shadow: 0 0 0 1px #ef5350;
+    }
+
+    .incident-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #26313c;
+    }
+
+    .badge.high {
+      background: #5b2020;
+    }
+
+    .badge.medium {
+      background: #4b3d18;
+    }
+
+    button {
+      margin: 8px 6px 0 0;
+      padding: 7px 10px;
+      border: 1px solid #3a4855;
+      border-radius: 5px;
+      background: #18222c;
+      color: #e8edf2;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #22303d;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .filter.active {
+      border-color: #42d392;
+      background: #1b3028;
+    }
+
+    .event {
+      padding: 10px;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      color: #8d9aa8;
+      padding: 15px 0;
+    }
+
+    footer {
+      margin-top: 30px;
+      color: #687684;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="topbar">
+      <div>
+        <h1>Cyber Lab SOC Dashboard</h1>
+        <div class="muted">Local Security Operations Center</div>
+      </div>
+
+      <button onclick="refreshDashboard()">Refresh Now</button>
+    </div>
+  </header>
+
+  <div id="overall" class="status-banner">
+    Loading SOC status...
+  </div>
+
+  <div class="stats">
+    <div class="card">
+      <div class="card-title">TOTAL EVENTS</div>
+      <div id="totalEvents" class="number">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">RATE LIMIT</div>
+      <div id="rateLimit" class="number">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">AUTH FAILURE</div>
+      <div id="authFailure" class="number">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">BRUTE FORCE</div>
+      <div id="bruteForce" class="number">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">OPEN INCIDENTS</div>
+      <div id="openIncidents" class="number">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">HIGH SEVERITY</div>
+      <div id="highIncidents" class="number">-</div>
+    </div>
+  </div>
+
+  <h2>Service Health</h2>
+  <div id="services" class="services">Loading...</div>
+
+  <h2>Security Alerts</h2>
+<div id="alerts" class="incidents">Loading...</div>
+
+<h2>Event Correlation</h2>
+  <div class="card">
+    <div class="card-title">CORRELATION GROUPS</div>
+    <div id="correlationGroups">Loading correlation data...</div>
+  </div>
+
+<h2>Incidents</h2>
+
+  <div class="filters">
+    <button class="filter active" data-filter="ALL"
+            onclick="setIncidentFilter('ALL')">All</button>
+    <button class="filter" data-filter="OPEN"
+            onclick="setIncidentFilter('OPEN')">Open</button>
+    <button class="filter" data-filter="ACKNOWLEDGED"
+            onclick="setIncidentFilter('ACKNOWLEDGED')">Acknowledged</button>
+    <button class="filter" data-filter="RESOLVED"
+            onclick="setIncidentFilter('RESOLVED')">Resolved</button>
+  </div>
+
+  <div id="incidents" class="incidents">Loading...</div>
+
+  <h2>Audit Trail</h2>
+  <div id="audit" class="events">Loading...</div>
+
+  <h2>Recent Security Events</h2>
+  <div id="events" class="events">Loading...</div>
+
+  <footer>
+    Auto-refresh: 5 seconds |
+    Last refresh: <span id="lastRefresh">-</span>
+  </footer>
+
+</div>
+
+<script>
+
+let allIncidents = [];
+let incidentFilter = "ALL";
+
+
+async function api(path) {
+  const response = await fetch(path);
+
+  if (!response.ok) {
+    throw new Error(`${path}: HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+
+async function loadStatus() {
+  const data = await api("/api/status");
+
+  const overall = document.getElementById("overall");
+
+  overall.textContent =
+    `Overall: ${data.overall} | Services: ${data.online}/${data.total}`;
+
+  overall.className =
+    "status-banner " +
+    (data.overall === "HEALTHY" ? "healthy" : "unhealthy");
+
+  const container = document.getElementById("services");
+  container.innerHTML = "";
+
+  for (const [name, info] of Object.entries(data.services)) {
+    const div = document.createElement("div");
+
+    div.className = `service ${info.status}`;
+
+    div.innerHTML = `
+      <strong>${name}</strong><br>
+      Status: ${info.status.toUpperCase()}<br>
+      HTTP: ${info.http ?? "-"}
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+
+async function loadSummary() {
+  const data = await api("/api/summary");
+
+  document.getElementById("totalEvents").textContent =
+    data.total_events;
+
+  document.getElementById("rateLimit").textContent =
+    data.event_types.RATE_LIMIT || 0;
+
+  document.getElementById("authFailure").textContent =
+    data.event_types.AUTH_FAILURE || 0;
+
+  document.getElementById("bruteForce").textContent =
+    data.event_types.BRUTE_FORCE || 0;
+}
+
+
+async function loadAlerts() {
+  const data = await api("/api/alerts");
+
+  const container = document.getElementById("alerts");
+  container.innerHTML = "";
+
+  if (!data.alerts.length) {
+    container.innerHTML =
+      '<div class="empty">No active security alerts.</div>';
+    return;
+  }
+
+  for (const alert of [...data.alerts].reverse()) {
+    const div = document.createElement("div");
+
+    div.className =
+      `incident ${alert.status.toLowerCase()} ` +
+      `${alert.severity.toLowerCase()}`;
+
+    div.innerHTML = `
+      <div class="incident-header">
+        <strong>#${alert.id} ${alert.event}</strong>
+
+        <span>
+          <span class="badge ${alert.severity.toLowerCase()}">
+            ${alert.severity}
+          </span>
+
+          <span class="badge">
+            ${alert.status}
+          </span>
+        </span>
+      </div>
+
+      <p>
+        <strong>Service:</strong>
+        ${alert.service}
+      </p>
+
+      <p>${alert.detail}</p>
+
+      <div class="muted">
+        Created: ${alert.created}
+      </div>
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+
+async function loadCorrelation() {
+  try {
+    const data = await api("/api/correlation");
+    const container = document.getElementById("correlationGroups");
+
+    if (!data.groups || data.groups.length === 0) {
+      container.innerHTML = "<div>No correlated events detected.</div>";
+      return;
+    }
+
+    container.innerHTML = data.groups.map((group, index) => {
+      const classification = group.classification || "RELATED_EVENTS";
+      const count = group.count || 0;
+
+      return `
+        <div class="incident-row">
+          <strong>#${index + 1} ${classification}</strong>
+          <span>Events: ${count}</span>
+        </div>
+      `;
+    }).join("");
+
+  } catch (error) {
+    document.getElementById("correlationGroups").textContent =
+      "Correlation data unavailable.";
+  }
+}
+
+async function loadIncidents() {
+  const data = await api("/api/incidents");
+
+  allIncidents = data.incidents;
+
+  renderIncidents();
+}
+
+
+function renderIncidents() {
+  const container = document.getElementById("incidents");
+
+  container.innerHTML = "";
+
+  const open = allIncidents.filter(
+    x => x.status === "OPEN"
+  ).length;
+
+  const high = allIncidents.filter(
+    x => x.severity === "HIGH" &&
+         x.status !== "RESOLVED"
+  ).length;
+
+  document.getElementById("openIncidents").textContent = open;
+  document.getElementById("highIncidents").textContent = high;
+
+  const filtered = allIncidents.filter(incident =>
+    incidentFilter === "ALL" ||
+    incident.status === incidentFilter
+  );
+
+  if (!filtered.length) {
+    container.innerHTML =
+      '<div class="empty">No incidents matching this filter.</div>';
+    return;
+  }
+
+  for (const incident of [...filtered].reverse()) {
+
+    const div = document.createElement("div");
+
+    div.className =
+      `incident ${incident.status.toLowerCase()} ` +
+      `${incident.severity.toLowerCase()}`;
+
+    const buttons =
+      incident.status === "RESOLVED"
+        ? ""
+        : `
+          <button onclick="changeIncident(${incident.id}, 'ACKNOWLEDGED')">
+            Acknowledge
+          </button>
+          <button onclick="changeIncident(${incident.id}, 'RESOLVED')">
+            Resolve
+          </button>
+        `;
+
+    div.innerHTML = `
+      <div class="incident-header">
+        <strong>#${incident.id} ${incident.event}</strong>
+
+        <span>
+          <span class="badge ${incident.severity.toLowerCase()}">
+            ${incident.severity}
+          </span>
+
+          <span class="badge">
+            ${incident.status}
+          </span>
+        </span>
+      </div>
+
+      <p>
+        <strong>Service:</strong>
+        ${incident.service}
+      </p>
+
+      <p>${incident.detail}</p>
+
+      <div class="muted">
+        Created: ${incident.created}
+      </div>
+
+      ${
+        incident.resolved
+          ? `<div class="muted">
+               Resolved: ${incident.resolved}
+             </div>`
+          : ""
+      }
+
+      ${buttons}
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+
+function setIncidentFilter(filter) {
+  incidentFilter = filter;
+
+  document.querySelectorAll(".filter").forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.filter === filter
+    );
+  });
+
+  renderIncidents();
+}
+
+
+async function changeIncident(id, status) {
+  try {
+    const response = await fetch(
+      `/api/incidents/${id}/status`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({status})
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    await Promise.all([
+      loadIncidents(),
+      loadAudit()
+    ]);
+
+  } catch (error) {
+    console.error(error);
+    alert("Incident update failed.");
+  }
+}
+
+
+async function loadAudit() {
+  const data = await api("/api/audit");
+
+  const container = document.getElementById("audit");
+  container.innerHTML = "";
+
+  if (!data.audit.length) {
+    container.innerHTML =
+      '<div class="empty">No audit records.</div>';
+    return;
+  }
+
+  for (const entry of [...data.audit].reverse()) {
+    const div = document.createElement("div");
+
+    div.className = "event";
+
+    div.innerHTML = `
+      <strong>Incident #${entry.incident_id}</strong>
+      | ${entry.action}
+      ${
+        entry.old_status
+          ? `| ${entry.old_status} → ${entry.new_status}`
+          : entry.new_status
+            ? `| ${entry.new_status}`
+            : ""
+      }
+      <br>
+      <span class="muted">${entry.timestamp}</span>
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+
+async function loadEvents() {
+  const data = await api("/api/events");
+
+  const container = document.getElementById("events");
+  container.innerHTML = "";
+
+  if (!data.events.length) {
+    container.innerHTML =
+      '<div class="empty">No security events.</div>';
+    return;
+  }
+
+  for (const event of data.events) {
+    const div = document.createElement("div");
+
+    div.className = "event";
+    div.textContent = event;
+
+    container.appendChild(div);
+  }
+}
+
+
+async function refreshDashboard() {
+  try {
+    await Promise.all([
+      loadStatus(),
+      loadSummary(),
+      loadAlerts(),
+      loadCorrelation(),
+      loadIncidents(),
+      loadAudit(),
+      loadEvents()
+    ]);
+
+    document.getElementById("lastRefresh").textContent =
+      new Date().toLocaleTimeString();
+
+  } catch (error) {
+    console.error("Dashboard refresh failed:", error);
+  }
+}
+
+
+refreshDashboard();
+
+setInterval(refreshDashboard, 5000);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+from datetime import datetime, timedelta
+import json
+from urllib.request import urlopen
+
+from correlation_engine import correlate_events, classify_group
+
+
+def make_event(event, timestamp):
+    return {
+        "event": event,
+        "service": "web-security-lab",
+        "timestamp": timestamp.isoformat(),
+    }
+
+
+base = datetime.now().astimezone()
+
+print("=== CORRELATION API HEALTH TEST ===")
+
+# 1. Five authentication failures => BRUTE_FORCE
+events = [
+    make_event("AUTH_FAILURE", base + timedelta(seconds=i * 5))
+    for i in range(5)
+]
+
+groups = correlate_events(events)
+
+assert len(groups) == 1
+assert classify_group(groups[0]) == "BRUTE_FORCE"
+print("[PASS] 5 AUTH_FAILURE => BRUTE_FORCE")
+
+# 2. Four failures => not brute force
+events = [
+    make_event("AUTH_FAILURE", base + timedelta(seconds=i * 5))
+    for i in range(4)
+]
+
+groups = correlate_events(events)
+
+assert len(groups) == 1
+assert classify_group(groups[0]) == "RELATED_EVENTS"
+print("[PASS] 4 AUTH_FAILURE => RELATED_EVENTS")
+
+# 3. Outside 60-second window
+events = [
+    make_event("AUTH_FAILURE", base),
+    make_event("AUTH_FAILURE", base + timedelta(seconds=61)),
+]
+
+groups = correlate_events(events)
+
+assert len(groups) == 2
+print("[PASS] 60-second correlation window enforced")
+
+# 4. Suspicious request
+events = [
+    make_event("SUSPICIOUS_REQUEST", base)
+]
+
+groups = correlate_events(events)
+
+assert classify_group(groups[0]) == "SUSPICIOUS_ACTIVITY"
+print("[PASS] SUSPICIOUS_REQUEST classification")
+
+# 5. Rate limit
+events = [
+    make_event("RATE_LIMIT", base)
+]
+
+groups = correlate_events(events)
+
+assert classify_group(groups[0]) == "RATE_LIMIT_ACTIVITY"
+print("[PASS] RATE_LIMIT classification")
+
+# 6. Live API
+with urlopen(
+    "http://127.0.0.1:9099/api/correlation",
+    timeout=5
+) as response:
+    assert response.status == 200
+
+    data = json.loads(
+        response.read().decode("utf-8")
+    )
+
+assert data["window_seconds"] == 60
+assert isinstance(data["groups"], list)
+
+print("[PASS] /api/correlation HTTP 200")
+print("[PASS] Correlation response structure valid")
+
+print()
+print("=== RESULT ===")
+print("CORRELATION API HEALTH TEST: PASS")

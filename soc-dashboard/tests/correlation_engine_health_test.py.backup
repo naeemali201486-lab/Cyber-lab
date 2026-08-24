@@ -1,0 +1,95 @@
+from datetime import datetime, timedelta
+
+from correlation_engine import correlate_events, classify_group
+
+
+print("=== CORRELATION ENGINE HEALTH TEST ===")
+
+
+base = datetime.fromisoformat(
+    "2026-08-21T17:00:00+05:00"
+)
+
+
+def event(event_type, seconds):
+    return {
+        "event": event_type,
+        "service": "web-security-lab",
+        "timestamp": (
+            base + timedelta(seconds=seconds)
+        ).isoformat(),
+    }
+
+
+# Test 1: five AUTH_FAILURE events within 60 seconds
+auth_events = [
+    event("AUTH_FAILURE", 0),
+    event("AUTH_FAILURE", 10),
+    event("AUTH_FAILURE", 20),
+    event("AUTH_FAILURE", 30),
+    event("AUTH_FAILURE", 40),
+]
+
+groups = correlate_events(auth_events)
+
+assert len(groups) == 1
+assert len(groups[0]) == 5
+assert classify_group(groups[0]) == "BRUTE_FORCE"
+
+print("[PASS] 5 AUTH_FAILURE events correlated")
+print("[PASS] Classification: BRUTE_FORCE")
+
+
+# Test 2: events outside the correlation window
+separated_events = [
+    event("AUTH_FAILURE", 0),
+    event("AUTH_FAILURE", 30),
+    event("AUTH_FAILURE", 61),
+]
+
+groups = correlate_events(separated_events)
+
+assert len(groups) == 2
+assert len(groups[0]) == 2
+assert len(groups[1]) == 1
+
+print("[PASS] 60-second correlation window enforced")
+
+
+# Test 3: suspicious request classification
+suspicious_events = [
+    event("SUSPICIOUS_REQUEST", 0),
+    event("AUTH_FAILURE", 10),
+]
+
+groups = correlate_events(suspicious_events)
+
+assert len(groups) == 1
+assert classify_group(groups[0]) == "SUSPICIOUS_ACTIVITY"
+
+print("[PASS] SUSPICIOUS_REQUEST correlation")
+
+
+# Test 4: rate-limit classification
+rate_events = [
+    event("RATE_LIMIT", 0),
+    event("RATE_LIMIT", 20),
+]
+
+groups = correlate_events(rate_events)
+
+assert len(groups) == 1
+assert classify_group(groups[0]) == "RATE_LIMIT_ACTIVITY"
+
+print("[PASS] RATE_LIMIT correlation")
+
+
+# Test 5: empty input
+assert correlate_events([]) == []
+
+print("[PASS] Empty event set handled")
+
+
+print()
+print("=== RESULT ===")
+print("CORRELATION ENGINE TEST: PASS")

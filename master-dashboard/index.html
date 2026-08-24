@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyber Lab Master Dashboard</title>
+</head>
+<body>
+  <h1>Cyber Lab Master Dashboard</h1>
+
+  <h2>Live Services</h2>
+
+  <ul>
+    <li>Service Test: <strong id="service-test">Checking...</strong></li>
+    <li>Dashboard: <strong id="dashboard">Checking...</strong></li>
+    <li>Log Lab: <strong id="log-lab">Checking...</strong></li>
+  </ul>
+
+  <h2>Overall Status</h2>
+  <p><strong id="overall">Checking...</strong></p>
+
+  <script>
+    async function updateStatus() {
+      try {
+        const response = await fetch("/api/status");
+        const data = await response.json();
+
+        let online = 0;
+
+        for (const name of ["service-test", "dashboard", "log-lab"]) {
+          const element = document.getElementById(name);
+
+          if (data[name].status === "online") {
+            element.textContent = "ONLINE";
+            online++;
+          } else {
+            element.textContent = "OFFLINE";
+          }
+        }
+
+        document.getElementById("overall").textContent =
+          online === 3 ? "ALL SYSTEMS OK" : "ATTENTION REQUIRED";
+
+      } catch (error) {
+        document.getElementById("overall").textContent = "MONITOR OFFLINE";
+      }
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 5000);
+  </script>
+</body>
+</html>

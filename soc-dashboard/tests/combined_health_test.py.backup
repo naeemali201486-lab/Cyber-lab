@@ -1,0 +1,115 @@
+import json
+import subprocess
+import sys
+from pathlib import Path
+from urllib.request import urlopen
+
+BASE = "http://127.0.0.1:9099"
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+INCIDENTS = ROOT / "events" / "incidents.json"
+AUDIT = ROOT / "events" / "audit.json"
+
+
+def get(path):
+    with urlopen(BASE + path, timeout=3) as r:
+        return json.loads(r.read().decode())
+
+
+print("=== COMBINED SOC + AUDIT HEALTH TEST ===")
+
+# 1. Existing SOC health test
+result = subprocess.run(
+    [sys.executable, str(Path(__file__).parent / "soc_health_test.py")],
+    cwd=ROOT,
+)
+
+if result.returncode != 0:
+    print("[FAIL] SOC health test")
+    sys.exit(1)
+
+print("[PASS] SOC health test")
+
+# 2. Save incident baseline
+with open(INCIDENTS, encoding="utf-8") as f:
+    baseline = json.load(f)
+
+with open(AUDIT, encoding="utf-8") as f:
+    audit_baseline = json.load(f)
+
+try:
+    # 3. Create temporary audit incident
+    from incident_manager import create_incident, update_status
+
+    incident = create_incident(
+        "COMBINED_HEALTH_TEST",
+        "web-security-lab",
+        "Combined SOC and audit lifecycle test"
+    )
+
+    assert incident["status"] == "OPEN"
+    update_status(incident["id"], "ACKNOWLEDGED")
+    update_status(incident["id"], "RESOLVED")
+
+    # 4. Verify audit trail
+    with open(AUDIT, encoding="utf-8") as f:
+        audit = json.load(f)
+
+    records = [
+        x for x in audit
+        if x.get("incident_id") == incident["id"]
+    ]
+
+    assert len(records) >= 3
+    records = records[-3:]
+
+    assert records[0]["action"] == "CREATED"
+    assert records[0]["new_status"] == "OPEN"
+
+    assert records[1]["action"] == "STATUS_CHANGED"
+    assert records[1]["old_status"] == "OPEN"
+    assert records[1]["new_status"] == "ACKNOWLEDGED"
+
+    assert records[2]["action"] == "STATUS_CHANGED"
+    assert records[2]["old_status"] == "ACKNOWLEDGED"
+    assert records[2]["new_status"] == "RESOLVED"
+
+    print("[PASS] Audit lifecycle")
+    print("[PASS] Audit trail verified")
+
+finally:
+    # Always restore both baselines
+    with open(INCIDENTS, "w", encoding="utf-8") as f:
+        json.dump(baseline, f, indent=2)
+
+    with open(AUDIT, "w", encoding="utf-8") as f:
+        json.dump(audit_baseline, f, indent=2)
+
+    print("[CLEANUP] Incident + audit baselines restored")
+
+# 5. Final API verification
+data = get("/api/incidents")
+incidents = data["incidents"]
+
+assert len(incidents) == len(baseline)
+assert incidents == baseline
+
+open_incidents = [
+    i for i in incidents
+    if i.get("status") == "OPEN"
+]
+
+assert not open_incidents
+
+print("[PASS] Incident baseline unchanged")
+print("[PASS] Open incidents: 0")
+
+# 6. Audit API
+audit_api = get("/api/audit")
+assert isinstance(audit_api.get("audit"), list)
+
+print("[PASS] Audit API")
+
+print()
+print("=== RESULT ===")
+print("COMBINED SOC + AUDIT TEST: PASS")

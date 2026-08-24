@@ -1,0 +1,114 @@
+import json
+import sys
+import time
+from pathlib import Path
+from urllib.request import Request, urlopen
+
+BASE = "http://127.0.0.1:9099"
+ROOT = Path(__file__).resolve().parent.parent
+INCIDENTS = ROOT / "events" / "incidents.json"
+AUDIT = ROOT / "events" / "audit.json"
+LOG = Path.home() / "cyber-lab" / "logs" / "web-security-lab.log"
+
+
+def get(path):
+    with urlopen(BASE + path, timeout=3) as r:
+        return json.loads(r.read().decode())
+
+
+def status(incident_id, value):
+    req = Request(
+        f"{BASE}/api/incidents/{incident_id}/status",
+        data=json.dumps({"status": value}).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(req, timeout=3) as r:
+        return json.loads(r.read().decode())
+
+
+print("=== SUSPICIOUS REQUEST HEALTH TEST ===")
+
+with open(INCIDENTS, encoding="utf-8") as f:
+    baseline_incidents = json.load(f)
+
+with open(AUDIT, encoding="utf-8") as f:
+    baseline_audit = json.load(f)
+
+try:
+    marker = f"local-controlled-test-{time.time_ns()}"
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+
+    with LOG.open("a", encoding="utf-8") as f:
+        f.write(
+            f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} "
+            f"SUSPICIOUS_REQUEST {marker}\n"
+        )
+
+    deadline = time.time() + 8
+    detected = None
+
+    while time.time() < deadline:
+        data = get("/api/incidents")
+
+        for incident in data["incidents"]:
+            if (
+                incident.get("event") == "SUSPICIOUS_REQUEST"
+                and incident.get("id", 0) > max(
+                    (x.get("id", 0) for x in baseline_incidents),
+                    default=0
+                )
+            ):
+                detected = incident
+                break
+
+        if detected:
+            break
+
+        time.sleep(0.5)
+
+    assert detected is not None, "SUSPICIOUS_REQUEST was not detected"
+    assert detected["severity"] == "MEDIUM"
+    assert detected["status"] == "OPEN"
+
+    print(f"[PASS] Incident #{detected['id']} detected")
+    print("[PASS] Severity MEDIUM")
+    print("[PASS] Initial status OPEN")
+
+    updated = status(detected["id"], "ACKNOWLEDGED")
+    assert updated["incident"]["status"] == "ACKNOWLEDGED"
+    print("[PASS] ACKNOWLEDGED")
+
+    updated = status(detected["id"], "RESOLVED")
+    assert updated["incident"]["status"] == "RESOLVED"
+    print("[PASS] RESOLVED")
+
+    with open(AUDIT, encoding="utf-8") as f:
+        audit = json.load(f)
+
+    records = [
+        x for x in audit
+        if x.get("incident_id") == detected["id"]
+    ]
+
+    assert len(records) >= 3
+    records = records[-3:]
+
+    assert records[0]["action"] == "CREATED"
+    assert records[1]["new_status"] == "ACKNOWLEDGED"
+    assert records[2]["new_status"] == "RESOLVED"
+
+    print("[PASS] Audit lifecycle")
+
+finally:
+    with open(INCIDENTS, "w", encoding="utf-8") as f:
+        json.dump(baseline_incidents, f, indent=2)
+
+    with open(AUDIT, "w", encoding="utf-8") as f:
+        json.dump(baseline_audit, f, indent=2)
+
+    print("[CLEANUP] Baselines restored")
+
+print()
+print("=== RESULT ===")
+print("SUSPICIOUS REQUEST TEST: PASS")

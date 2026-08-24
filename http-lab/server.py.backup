@@ -1,0 +1,39 @@
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+class Handler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        user = self.headers.get("X-Lab-User", "not provided")
+        test = self.headers.get("X-Lab-Test", "not provided")
+
+        body = f"User: {user}\nTest: {test}\n".encode()
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+
+        self.wfile.write(body)
+
+    def do_POST(self):
+        user = self.headers.get("X-Lab-User", "not provided")
+
+        length = int(self.headers.get("Content-Length", 0))
+        data = self.rfile.read(length)
+
+        body = f"User: {user}\nData: {data.decode()}\n".encode()
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+
+        self.wfile.write(body)
+
+
+server = HTTPServer(("127.0.0.1", 9093), Handler)
+
+print("Cyber Lab server running on 127.0.0.1:9093")
+
+server.serve_forever()

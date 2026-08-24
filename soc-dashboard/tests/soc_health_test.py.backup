@@ -1,0 +1,63 @@
+import json
+import sys
+from urllib.request import urlopen
+
+BASE = "http://127.0.0.1:9099"
+
+def get(path):
+    with urlopen(BASE + path, timeout=3) as r:
+        return json.loads(r.read().decode())
+
+print("=== SOC AUTOMATED HEALTH TEST ===")
+
+# 1. Dashboard
+try:
+    with urlopen(BASE + "/", timeout=3) as r:
+        assert r.status == 200
+    print("[PASS] Dashboard HTTP 200")
+except Exception as e:
+    print(f"[FAIL] Dashboard: {e}")
+    sys.exit(1)
+
+# 2. Service health
+status = get("/api/status")
+assert status["online"] == status["total"] == 6
+assert status["overall"] == "HEALTHY"
+print("[PASS] Services 6/6 HEALTHY")
+
+# 3. SOC summary
+summary = get("/api/summary")
+assert summary["total_events"] >= 0
+print(f"[PASS] Events: {summary['total_events']}")
+
+# 4. Incident API
+data = get("/api/incidents")
+incidents = data["incidents"]
+
+assert isinstance(incidents, list)
+print(f"[PASS] Incident API: {len(incidents)} incidents")
+
+# 5. No open incidents
+open_incidents = [
+    i for i in incidents
+    if i.get("status") == "OPEN"
+]
+
+assert len(open_incidents) == 0
+print("[PASS] Open incidents: 0")
+
+# 6. Historical brute-force validation
+brute = [
+    i for i in incidents
+    if i.get("event") == "BRUTE_FORCE"
+]
+
+assert brute
+assert any(i.get("severity") == "HIGH" for i in brute)
+assert all(i.get("status") == "RESOLVED" for i in brute)
+
+print("[PASS] BRUTE_FORCE HIGH incident resolved")
+
+print()
+print("=== RESULT ===")
+print("SOC TEST SUITE: PASS")

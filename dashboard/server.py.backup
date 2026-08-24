@@ -1,0 +1,6 @@
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+server = HTTPServer(("127.0.0.1", 9095), SimpleHTTPRequestHandler)
+
+print("Cyber Lab Dashboard running on 127.0.0.1:9095")
+server.serve_forever()

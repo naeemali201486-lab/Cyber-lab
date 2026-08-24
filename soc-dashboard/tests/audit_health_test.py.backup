@@ -1,0 +1,59 @@
+from pathlib import Path
+import json
+
+from incident_manager import create_incident, update_status
+
+BASE = Path(__file__).resolve().parent.parent
+INCIDENTS = BASE / "events" / "incidents.json"
+AUDIT = BASE / "events" / "audit.json"
+
+with open(INCIDENTS, encoding="utf-8") as f:
+    baseline = json.load(f)
+
+try:
+    incident = create_incident(
+        "AUDIT_HEALTH_TEST",
+        "web-security-lab",
+        "Automated audit lifecycle test"
+    )
+
+    assert incident["status"] == "OPEN"
+
+    update_status(incident["id"], "ACKNOWLEDGED")
+    update_status(incident["id"], "RESOLVED")
+
+    with open(AUDIT, encoding="utf-8") as f:
+        audit = json.load(f)
+
+    records = [
+        x for x in audit
+        if x.get("incident_id") == incident["id"]
+    ]
+
+    # Only verify the latest 3 records for this test incident.
+    assert len(records) >= 3
+
+    records = records[-3:]
+
+    assert records[0]["action"] == "CREATED"
+    assert records[0]["new_status"] == "OPEN"
+
+    assert records[1]["action"] == "STATUS_CHANGED"
+    assert records[1]["old_status"] == "OPEN"
+    assert records[1]["new_status"] == "ACKNOWLEDGED"
+
+    assert records[2]["action"] == "STATUS_CHANGED"
+    assert records[2]["old_status"] == "ACKNOWLEDGED"
+    assert records[2]["new_status"] == "RESOLVED"
+
+    print("[PASS] Audit incident creation")
+    print("[PASS] OPEN -> ACKNOWLEDGED")
+    print("[PASS] ACKNOWLEDGED -> RESOLVED")
+    print("[PASS] Audit trail verified")
+    print("AUDIT HEALTH TEST: PASS")
+
+finally:
+    with open(INCIDENTS, "w", encoding="utf-8") as f:
+        json.dump(baseline, f, indent=2)
+
+    print("[CLEANUP] Incident baseline restored")
